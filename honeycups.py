@@ -14,7 +14,11 @@ class DataLogger(threading.Thread):
     def __init__(self, parent: 'HoneypotServer') -> None:
         super().__init__()
         self.parent = parent
-        self.datalog = open('/home/honeycups/connslog', 'a')
+        try:
+            self.datalog = open('/home/honeycups/connslog', 'a')
+        except:
+            logging.exception('failed to open datalog file')
+            raise
 
     def run(self) -> None:
         while (not self.parent.quitting):
@@ -60,7 +64,13 @@ class HoneypotServer():
             exit(1)
 
         logging.debug('spawning data logger ...')
-        self.logging_handler = DataLogger(self)
+        try:
+            self.logging_handler = DataLogger(self)
+        except:
+            logging.exception('failed to spawn DataLogger. exiting ...')
+            pipe.send(1)
+            exit(1)
+
         self.logging_handler.daemon = True
         self.logging_handler.start()
 
