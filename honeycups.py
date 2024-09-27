@@ -35,7 +35,6 @@ class DataLogger(threading.Thread):
 class HoneypotServer():
     def __init__(self, pipe) -> None:
         os.environ['HOME'] = '/home/honeycups'
-        sys.path.append(os.environ['HOME'])
         self.setup_logger()
 
         signal.signal(signal.SIGTERM, self.sigterm_handler)
@@ -46,8 +45,6 @@ class HoneypotServer():
         try:
             logging.debug('binding sockets ...')
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.socket.setsockopt(socket.SOL_IP, 8, 1)
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.socket.bind(('0.0.0.0', 631))
         except Exception as e:
             logging.exception('failed to bind socket. exiting ...')
@@ -69,15 +66,12 @@ class HoneypotServer():
 
         pipe.send(0)
 
-
-
     def drop_privileges(self) -> None:
         uid = pwd.getpwnam('honeycups').pw_uid
         gid = grp.getgrnam('honeycups').gr_gid
         os.setgroups([])
         os.setgid(gid)
         os.setuid(uid)
-
 
     def setup_logger(self) -> None:
         filename = os.environ['HOME'] + '/honeycups.log'
@@ -90,7 +84,6 @@ class HoneypotServer():
     def sigterm_handler(self, signo, stack_frame) -> None:
         self.graceful_exit()
 
-
     def graceful_exit(self) -> None:
             logging.info('interrupt received. exiting ...')
             self.quitting = True
@@ -98,16 +91,14 @@ class HoneypotServer():
             self.socket.close()
             exit(0)
 
-
     def receive_connections(self) -> None:
         try:
             while True:
-                msg, addr = self.socket.recvfrom(4096, socket.CMSG_SPACE(16))
+                msg, addr = self.socket.recvfrom(4096)
                 self.message_queue.put((msg, addr))
 
         except KeyboardInterrupt as e:
             self.graceful_exit()
-
 
 
 
